@@ -33,7 +33,7 @@
         <li><strong>System Memory: </strong><span id="mem-total"></span></li>
       </ul>
     </div>
-
+    
     <div class="content">
     <h1><i class="fas fa-cog"></i> Settings</h1>
     <div id="alert" class="hide"></div>
@@ -48,7 +48,7 @@
         </div>
         <input type="submit" value="Save" class="btn">
     </form>
-    </div>
+    </div> 
   </main>
   <nav id="nav">
     <ul>
@@ -70,6 +70,7 @@
     <script src="js/monitor.js"></script>
     <script>
       const settingsForm = document.getElementById('settings-form')
+      const nav = document.getElementById('nav')
 
       ipcRenderer.on('settings:get', (e, settings) => {
         document.getElementById('cpu-overload').value = settings.cpuOverload
@@ -84,8 +85,22 @@
           cpuOverload,
           alertFrequency
         });
-        console.log('Setting saved');
+        showAlert('Setting saved');
       })
+
+      function showAlert(msg) {
+        const alert = document.getElementById('alert')
+        alert.classList.remove('hide')
+        alert.classList.add('alert')
+        alert.innerText = msg
+
+        setTimeout(() => alert.classList.add('hide'), 3000)
+      }
+
+      ipcRenderer.on('nav:toggle', () => {
+        nav.classList.toggle('hide')
+      })
+
     </script>
   </body>
 </html>

@@ -5,8 +5,8 @@ const cpu = osu.cpu;
 const mem = osu.mem;
 const os = osu.os;
 
-let cpuOverload = 5;
-let alertFrequency = 1;
+let cpuOverload;
+let alertFrequency;
 
 ipcRenderer.on("settings:get", (e, settings) => {
   cpuOverload = +settings.cpuOverload;
@@ -15,7 +15,7 @@ ipcRenderer.on("settings:get", (e, settings) => {
 
 setInterval(() => {
   cpu.usage().then((info) => {
-    document.getElementById("cpu-usage").innerText = info + "%";
+    document.getElementById("cpu-usage").innerText = info.toFixed(2) + "%";
 
     document.getElementById("cpu-progress").style.width = info + "%";
 
@@ -37,7 +37,7 @@ setInterval(() => {
   });
 
   cpu.free().then((info) => {
-    document.getElementById("cpu-free").innerText = info + "%";
+    document.getElementById("cpu-free").innerText = info.toFixed(2) + "%";
   });
 
   document.getElementById("sys-uptime").innerText = secondsToDhms(os.uptime());
@@ -50,7 +50,8 @@ document.getElementById("comp-name").innerText = os.hostname();
 document.getElementById("os").innerText = `${os.type()} ${os.arch()}`;
 
 mem.info().then((info) => {
-  document.getElementById("mem-total").innerText = info.totalMemMb;
+  document.getElementById("mem-total").innerText =
+    (info.totalMemMb / 1000).toFixed(2) + " GB";
 });
 
 function secondsToDhms(seconds) {

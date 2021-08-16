@@ -1,14 +1,17 @@
-const { app, BrowserWindow, Menu, ipcMain } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, Tray } = require("electron");
+const path = require("path");
 const log = require("electron-log");
 const Store = require("./Store");
+const MainWindow = require("./MainWindow");
 
 // Set env
-process.env.NODE_ENV = "development";
+process.env.NODE_ENV = "production";
 
 const isDev = process.env.NODE_ENV !== "production" ? true : false;
 const isMac = process.platform === "darwin" ? true : false;
 
 let mainWindow;
+let tray;
 
 const store = new Store({
   configName: "user-settings",
@@ -21,23 +24,11 @@ const store = new Store({
 });
 
 function createMainWindow() {
-  mainWindow = new BrowserWindow({
-    title: "SysCheck",
-    width: isDev ? 800 : 355,
-    height: 500,
-    icon: "./assets/icons/icon.png",
-    resizable: isDev ? true : false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
+  mainWindow = new MainWindow("./app/index.html", isDev);
 
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
-
-  mainWindow.loadFile("./app/index.html");
 }
 
 app.on("ready", () => {
@@ -49,12 +40,54 @@ app.on("ready", () => {
 
   const mainMenu = Menu.buildFromTemplate(menu);
   Menu.setApplicationMenu(mainMenu);
+
+  mainWindow.on("close", (e) => {
+    if (!app.isQuitting) {
+      e.preventDefault();
+      mainWindow.hide();
+    }
+    return true;
+  });
+
+  const icon = path.join(__dirname, "assets", "icons", "tray_icon.png");
+
+  tray = new Tray(icon);
+
+  tray.on("click", () => {
+    if (mainWindow.isVisible() === true) {
+      mainWindow.hide();
+    } else {
+      mainWindow.show();
+    }
+  });
+  tray.setToolTip("SysCheck | Monitor your CPU");
+  tray.on("right-click", () => {
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: "Quit",
+        click: () => {
+          app.isQuitting = true;
+          app.quit();
+        },
+      },
+    ]);
+    tray.popUpContextMenu(contextMenu);
+  });
 });
 
 const menu = [
   ...(isMac ? [{ role: "appMenu" }] : []),
   {
     role: "fileMenu",
+  },
+  {
+    label: "View",
+    submenu: [
+      {
+        label: "Toggle Navigation",
+        click: () => mainWindow.webContents.send("nav:toggle"),
+      },
+    ],
   },
   ...(isDev
     ? [
@@ -71,10 +104,10 @@ const menu = [
     : []),
 ];
 
-ipcMain.on('settings:set', (e, value) => {
-  store.set('settings', value)
+ipcMain.on("settings:set", (e, value) => {
+  store.set("settings", value);
   mainWindow.webContents.send("settings:get", store.get("settings"));
-})
+});
 
 app.on("window-all-closed", () => {
   if (!isMac) {
